@@ -11,6 +11,8 @@ extern float current_height;
 extern int x, y;
 extern char current_pos_char[3][14];
 extern char waypoint_pos_char[3][14];
+extern int cdu_warn_light[3];
+extern int cdu_batt_light[3];
 
 extern double sim_frame_time;
 extern int sim_paused;

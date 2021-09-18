@@ -20,8 +20,8 @@ static dr_t current_leg_dist[3];
 static dr_t cross_track_err[3];
 
 
-static dr_t warn_light[3];
-static dr_t batt_light[3];
+static dr_t ins_warn_light[3];
+static dr_t ins_batt_light[3];
 static dr_t auto_man_switch_light[3];
 static dr_t remote_light[3];
 
@@ -36,6 +36,8 @@ void LoadDataRefs()
 	{
 		fdr_find(&waypoint_pos[i], "omi/iru/%d/nav/waypoint_dm", i);
 		fdr_find(&current_pos[i], "omi/iru/%d/nav_pos_dm",i);
+		fdr_find(&ins_warn_light[i], "omi/iru/%d/warn_light", i);
+		fdr_find(&ins_batt_light[i], "omi/iru/%d/battery_light", i);
 		
 	}
 }
@@ -48,6 +50,8 @@ void GetDataRefs()
 	{
 		dr_getbytes(&current_pos[i], current_pos_char[i], 0, sizeof(current_pos_char[i]));
 		dr_getbytes(&waypoint_pos[i], waypoint_pos_char[i], 0, sizeof(waypoint_pos_char[i]));
+		cdu_warn_light[i] = dr_geti(&ins_warn_light[i]);
+		cdu_batt_light[i] = dr_geti(&ins_batt_light[i]);
 		
 	}
 }

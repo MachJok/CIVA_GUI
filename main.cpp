@@ -109,7 +109,9 @@ const char* seven_seg_full_path;
 const char* sans_full_path;
 
 vect3_t color = {1,0,1};
-int window_l{0}, window_t{0}, window_r{0}, window_b{0}, w_curr[3], h_curr[3], w_old[3], h_old[3], x, y, first_render_loop{0},sim_paused{0}, window_index{0};
+int window_l{0}, window_t{0}, window_r{0}, window_b{0}, w_curr[3], h_curr[3], 
+	w_old[3], h_old[3], x, y, first_render_loop{0},sim_paused{0}, 
+	window_index{0}, cdu_warn_light[3]{0}, cdu_batt_light[3]{0};
 char plugindir[MAX_PATH]{};
 char* p;
 
@@ -318,7 +320,11 @@ void load_cdu_data(int window_index)
     cdu_data[window_index].displays.nav_to = 2;
     cdu_data[window_index].hold_pressed = false;
     cdu_data[window_index].hold_on = false;	
+	cdu_data[window_index].bat_on = cdu_batt_light[window_index];
+	cdu_data[window_index].warn_on = cdu_warn_light[window_index];
 }
+
+//digit display refresh controller
 bool seconds_update()
 {
 	current_time += sim_frame_time;
