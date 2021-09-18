@@ -422,7 +422,7 @@ void	draw(XPLMWindowID in_window_id, void * in_refcon)
 
 void render_cb(cairo_t *cr, unsigned w, unsigned h, void* userinfo)
 {
-
+	//not really sure what the best way to handle scaling is, this currently doesnt work
 	if(!init_renderer_complete[window_index])
 	{
 		sx[window_index] = (double)MIN_WIDTH / (float)WIDTH; //temp for debug
@@ -599,7 +599,7 @@ int dummy_wheel_handler(XPLMWindowID in_window_id, int x, int y, int wheel, int 
 {
 	return 0;
 }
-
+//these are the window setup parameters
 void window_params_setup(XPLMCreateWindow_t param)
 {
 	param.structSize = sizeof(param);
@@ -627,13 +627,13 @@ void window_params_setup(XPLMCreateWindow_t param)
 	param.bottom = bottom + 150;
 	param.right = param.left + MIN_WIDTH;
 	param.top = param.bottom + MIN_HEIGHT;
-	
+	//REPLACE 3 WITH NUM_IRU
 	for(int i = 0; i < 3; ++i)
 	{
 		g_window[i] = XPLMCreateWindowEx(&param);
 		XPLMSetWindowPositioningMode(g_window[i], xplm_WindowPositionFree, -1);
 		XPLMSetWindowGravity(g_window[i], 0, 1, 0, 1); // As the X-Plane window resizes, keep our size constant, and our left and top edges in the same place relative to the window's left/top
-		XPLMSetWindowResizingLimits(g_window[i], MIN_WIDTH, MIN_HEIGHT, MIN_WIDTH, MIN_HEIGHT); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
+		XPLMSetWindowResizingLimits(g_window[i], MIN_WIDTH, MIN_HEIGHT, WIDTH, HEIGHT); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
 		//XPLMSetWindowResizingLimits(g_window, WIDTH/4, HEIGHT/4, WIDTH*3/4, HEIGHT*3/4); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
 		char window_name[6];
 		snprintf(window_name, sizeof(window_name), "CDU-%i", i+1);
