@@ -1,0 +1,17 @@
+[
+{
+  "directory": "/home/crash/Desktop/Projects/Dev/multiwindow_test",
+  "command": "/usr/bin/c++  -DAPL=0 -DDEBUG -DIBM=0 -DLIN=1 -DXPLM200=1 -DXPLM210=1 -DXPLM300=1 -DXPLM301=1 -Dmulti_window_test_EXPORTS -I/home/crash/Desktop/Projects/Dev/multiwindow_test/multi-window-test -I/home/crash/Desktop/Projects/Dev/multiwindow_test/PUBLIC -I/home/crash/Desktop/Projects/Dev/multiwindow_test/XPLSDK303/CHeaders/XPLM -I/home/crash/Desktop/Projects/Dev/multiwindow_test/XPLSDK303/CHeaders/Widgets -I/home/crash/Desktop/Projects/Dev/multiwindow_test/XPLSDK303/CHeaders/Wrappers -I/home/crash/Desktop/Projects/Dev/multiwindow_test/libacfutils/include -I/home/crash/Desktop/Projects/Dev/multiwindow_test/libacfutils/lin64/include   --std=c++17 -Wformat-truncation=0 -Wformat-overflow=0  -g -fPIC   -o CMakeFiles/multi-window-test.dir/gui_datarefs.cpp.o -c /home/crash/Desktop/Projects/Dev/multiwindow_test/gui_datarefs.cpp",
+  "file": "/home/crash/Desktop/Projects/Dev/multiwindow_test/gui_datarefs.cpp"
+},
+{
+  "directory": "/home/crash/Desktop/Projects/Dev/multiwindow_test",
+  "command": "/usr/bin/c++  -DAPL=0 -DDEBUG -DIBM=0 -DLIN=1 -DXPLM200=1 -DXPLM210=1 -DXPLM300=1 -DXPLM301=1 -Dmulti_window_test_EXPORTS -I/home/crash/Desktop/Projects/Dev/multiwindow_test/multi-window-test -I/home/crash/Desktop/Projects/Dev/multiwindow_test/PUBLIC -I/home/crash/Desktop/Projects/Dev/multiwindow_test/XPLSDK303/CHeaders/XPLM -I/home/crash/Desktop/Projects/Dev/multiwindow_test/XPLSDK303/CHeaders/Widgets -I/home/crash/Desktop/Projects/Dev/multiwindow_test/XPLSDK303/CHeaders/Wrappers -I/home/crash/Desktop/Projects/Dev/multiwindow_test/libacfutils/include -I/home/crash/Desktop/Projects/Dev/multiwindow_test/libacfutils/lin64/include   --std=c++17 -Wformat-truncation=0 -Wformat-overflow=0  -g -fPIC   -o CMakeFiles/multi-window-test.dir/gui_functions.cpp.o -c /home/crash/Desktop/Projects/Dev/multiwindow_test/gui_functions.cpp",
+  "file": "/home/crash/Desktop/Projects/Dev/multiwindow_test/gui_functions.cpp"
+},
+{
+  "directory": "/home/crash/Desktop/Projects/Dev/multiwindow_test",
+  "command": "/usr/bin/c++  -DAPL=0 -DDEBUG -DIBM=0 -DLIN=1 -DXPLM200=1 -DXPLM210=1 -DXPLM300=1 -DXPLM301=1 -Dmulti_window_test_EXPORTS -I/home/crash/Desktop/Projects/Dev/multiwindow_test/multi-window-test -I/home/crash/Desktop/Projects/Dev/multiwindow_test/PUBLIC -I/home/crash/Desktop/Projects/Dev/multiwindow_test/XPLSDK303/CHeaders/XPLM -I/home/crash/Desktop/Projects/Dev/multiwindow_test/XPLSDK303/CHeaders/Widgets -I/home/crash/Desktop/Projects/Dev/multiwindow_test/XPLSDK303/CHeaders/Wrappers -I/home/crash/Desktop/Projects/Dev/multiwindow_test/libacfutils/include -I/home/crash/Desktop/Projects/Dev/multiwindow_test/libacfutils/lin64/include   --std=c++17 -Wformat-truncation=0 -Wformat-overflow=0  -g -fPIC   -o CMakeFiles/multi-window-test.dir/main.cpp.o -c /home/crash/Desktop/Projects/Dev/multiwindow_test/main.cpp",
+  "file": "/home/crash/Desktop/Projects/Dev/multiwindow_test/main.cpp"
+}
+]

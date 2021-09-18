@@ -1,0 +1,3 @@
+/home/crash/Desktop/Projects/Dev/multiwindow_test/CMakeFiles/rebuild_cache.dir
+/home/crash/Desktop/Projects/Dev/multiwindow_test/CMakeFiles/edit_cache.dir
+/home/crash/Desktop/Projects/Dev/multiwindow_test/CMakeFiles/multi-window-test.dir
