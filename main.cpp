@@ -11,6 +11,7 @@
 #include "acfutils/sysmacros.h"
 #include "cairo.h"
 #include "gui_variables.h"
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -35,8 +36,8 @@
 
 #define WIDTH 1280
 #define HEIGHT 1000
-#define MIN_WIDTH (WIDTH/4)
-#define MIN_HEIGHT (HEIGHT/4)
+#define MIN_WIDTH (WIDTH/2)
+#define MIN_HEIGHT (HEIGHT/2)
 cdu_t cdu_data[3]{0};
 color_t text_color;
 char waypoint_pos_char[3][14]{0};
@@ -111,22 +112,22 @@ const char* sans_full_path;
 vect3_t color = {1,0,1};
 int window_l{0}, window_t{0}, window_r{0}, window_b{0}, w_curr[3], h_curr[3], 
 	w_old[3], h_old[3], x, y, first_render_loop{0},sim_paused{0}, 
-	window_index{0}, cdu_warn_light[3]{0}, cdu_batt_light[3]{0};
+	window_index, cdu_warn_light[3]{0}, cdu_batt_light[3]{0};
 char plugindir[MAX_PATH]{};
 char* p;
 
 vect2_t pos[3]{0}, size[3]{0};
 
 // An opaque handle to the window we will create
-static XPLMWindowID	g_window[3]{NULL};
+static XPLMWindowID	civa_window[3]{NULL};
 static XPLMWindowID current_window{NULL};
 static float g_pop_button_lbrt[4]{0}, g_position_button_lbrt[4]{0}; // left, bottom, right, top
 XPLMCreateWindow_t params;
 
 static float curr_width{0}, curr_height{0};
 
-bool second_update{false}, init_renderer_complete[3]{false}, loaded_datarefs{false};
-double sim_frame_time{0}, current_time{0}, sx[3]{1}, sy[3]{1}, old_sx[3]{1}, old_sy[3]{1}, rel_sx[3]{1}, rel_sy[3]{1};
+bool second_update{false}, init_renderer_complete[3]{false}, loaded_datarefs{false}, first_loop[3]{true};
+double sim_frame_time{0}, current_time{0}, sx[3]{0}, sy[3]{0}, old_sx[3]{1}, old_sy[3]{1}, rel_sx[3]{1}, rel_sy[3]{1};
 double mat_xx[3], mat_xy[3], mat_yx[3], mat_yy[3], mat_x0[3], mat_y0[3];
 
 int g_menu_container_idx; // The index of our menu item in the Plugins menu
@@ -208,7 +209,9 @@ void 				window_params_setup(XPLMCreateWindow_t param);
 void 				menu_handler(void *, void *);
 
 int 				render_loop(XPLMDrawingPhase inPhase, int inIsBefore, void* refcon);
-void 				render_cb(cairo_t *cr, unsigned int w, unsigned int h, void* userinfo);
+void 				render_cb(cairo_t *cr, unsigned w, unsigned h, void* userinfo);
+
+
 void				fini_cb();
 
 bool				seconds_update();
@@ -257,6 +260,7 @@ PLUGIN_API int XPluginStart(
 	{
 		XPLMAppendMenuItemWithCommand(aircraft_menu, "Toggle Settings (Command-Based)", XPLMFindCommand("sim/operation/toggle_settings_window"));
 	}
+
 	window_params_setup(params);
 	logMsg("Menu Created successfuly");
 
@@ -272,7 +276,6 @@ PLUGIN_API int  XPluginEnable(void)
 	//register the render loop so we draw after (0) the window (xplm_Phase_Window) is drawn
 
 	//XPLMRegisterDrawCallback(render_loop, xplm_Phase_Window, 1, current_window);
-	make_window_map();
 
 
 
@@ -282,14 +285,14 @@ PLUGIN_API int  XPluginEnable(void)
 PLUGIN_API void	XPluginStop(void)
 {
 	// Since we created the window, we'll be good citizens and clean it up
-	for(int i = 0; i < 3; ++i)
+	for(int i = 0; i < 3; ++i) //replace with NUM_IRU
 	{
-		XPLMDestroyWindow(g_window[i]);
-		g_window[i] = NULL;
+		XPLMDestroyWindow(civa_window[i]);
+		civa_window[i] = NULL;
 	}
 	XPLMDestroyMenu(g_menu_id);
 	//XPLMUnregisterDrawCallback(render_loop, xplm_Phase_Window, 0, current_window);
-	for(int i = 0; i < 3; ++i)
+	for(int i = 0; i < 3; ++i) //replace with NUM_IRU
 	{
 		mt_cairo_render_fini(mtcr[i]);
 	}
@@ -306,22 +309,48 @@ PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void * inP
 
 void make_window_map()
 {
-	window_map = {{g_window[0], 0}, {g_window[1], 1}, {g_window[2], 2}};
+	window_map = {{civa_window[0], 0}, {civa_window[1], 1}, {civa_window[2], 2}};
 }
 void load_cdu_data(int window_index)
 {
-	cdu_data[window_index].data_sel = POS;
-    cdu_data[window_index].displays.left_display_on = true;
-    cdu_data[window_index].displays.right_display_on = true;
-    cdu_data[window_index].test_pressed = false;
-    cdu_data[window_index].wpt_num = 1;
-    cdu_data[window_index].brightness_knob_ang = 0;
-    cdu_data[window_index].displays.nav_from = 1;
-    cdu_data[window_index].displays.nav_to = 2;
-    cdu_data[window_index].hold_pressed = false;
-    cdu_data[window_index].hold_on = false;	
-	cdu_data[window_index].bat_on = cdu_batt_light[window_index];
-	cdu_data[window_index].warn_on = cdu_warn_light[window_index];
+	cdu_data[0].data_sel = POS;
+    cdu_data[0].displays.left_display_on = true;
+    cdu_data[0].displays.right_display_on = true;
+    cdu_data[0].test_pressed = false;
+    cdu_data[0].wpt_num = 1;
+    cdu_data[0].brightness_knob_ang = 0;
+    cdu_data[0].displays.nav_from = 1;
+    cdu_data[0].displays.nav_to = 2;
+    cdu_data[0].hold_pressed = false;
+    cdu_data[0].hold_on = false;	
+	cdu_data[0].bat_on = cdu_batt_light[0];
+	cdu_data[0].warn_on = cdu_warn_light[0];
+
+	cdu_data[1].data_sel = POS;
+    cdu_data[1].displays.left_display_on = true;
+    cdu_data[1].displays.right_display_on = true;
+    cdu_data[1].test_pressed = false;
+    cdu_data[1].wpt_num = 1;
+    cdu_data[1].brightness_knob_ang = 0;
+    cdu_data[1].displays.nav_from = 3;
+    cdu_data[1].displays.nav_to = 4;
+    cdu_data[1].hold_pressed = false;
+    cdu_data[1].hold_on = false;	
+	cdu_data[1].bat_on = cdu_batt_light[1];
+	cdu_data[1].warn_on = cdu_warn_light[1];
+		
+	cdu_data[2].data_sel = POS;
+    cdu_data[2].displays.left_display_on = true;
+    cdu_data[2].displays.right_display_on = true;
+    cdu_data[2].test_pressed = false;
+    cdu_data[2].wpt_num = 1;
+    cdu_data[2].brightness_knob_ang = 0;
+    cdu_data[2].displays.nav_from = 5;
+    cdu_data[2].displays.nav_to = 6;
+    cdu_data[2].hold_pressed = false;
+    cdu_data[2].hold_on = false;	
+	cdu_data[2].bat_on = cdu_batt_light[2];
+	cdu_data[2].warn_on = cdu_warn_light[2];
 }
 
 //digit display refresh controller
@@ -367,8 +396,11 @@ void	draw(XPLMWindowID in_window_id, void * in_refcon)
 		//initialize mt_cairo
 		GetDataRefs();
 		load_cdu_data(window_index);
-		mtcr[window_index] = mt_cairo_render_init(w_curr[window_index], h_curr[window_index], 0, 
-							NULL, render_cb, NULL, &cdu_data[window_index]);
+
+		mtcr[window_index] = 
+			mt_cairo_render_init(w_curr[window_index], h_curr[window_index], 0,
+				NULL, render_cb, NULL, &cdu_data[window_index]);
+
 		//set the flag to true to prevent scaling in the render_cb
 		init_renderer_complete[window_index] = true;
 		//enable single threaded mode
@@ -391,18 +423,19 @@ void	draw(XPLMWindowID in_window_id, void * in_refcon)
 
 	//if the size has changed set the new size to be the current size
 	//and reinitialize the renderer
-	if(mtcr[window_index] != NULL && (w_curr[window_index] != w_old[window_index] || 
-									  h_curr[window_index] != h_old[window_index]))
-	{
-		mt_cairo_render_fini(mtcr[window_index]);
-		mtcr[window_index] = NULL;
-		//reinitialize to the current size of the current window value
-		GetDataRefs();
-		load_cdu_data(window_index);
-		mtcr[window_index] = mt_cairo_render_init(w_curr[window_index], h_curr[window_index], 0, NULL, 
-							render_cb, NULL, &cdu_data[window_index]);
-		ASSERT(mtcr[window_index] != NULL);
-	}
+	// if(mtcr[window_index] != NULL && (w_curr[window_index] != w_old[window_index] || 
+	// 								  h_curr[window_index] != h_old[window_index]))
+	// {
+	// 	mt_cairo_render_fini(mtcr[window_index]);
+	// 	mtcr[window_index] = NULL;
+	// 	//reinitialize to the current size of the current window value
+	// 	GetDataRefs();
+	// 	load_cdu_data(window_index);
+	// 	mtcr[window_index] = mt_cairo_render_init(w_curr[window_index], h_curr[window_index], 0, NULL, 
+	// 						render_cb, NULL, &cdu_data[window_index]);
+	// 	ASSERT(mtcr[window_index] != NULL);
+	// }
+
 	//set the old size to the current size for next loop size checks
 	w_old[window_index] = w_curr[window_index];
 	h_old[window_index] = h_curr[window_index];
@@ -424,25 +457,25 @@ void	draw(XPLMWindowID in_window_id, void * in_refcon)
 	mt_cairo_render_draw(mtcr[window_index], pos[window_index], size[window_index]);
 }
 
-
-
 void render_cb(cairo_t *cr, unsigned w, unsigned h, void* userinfo)
 {
+	int window_idx = window_index;
 	//not really sure what the best way to handle scaling is, this currently doesnt work
-	if(!init_renderer_complete[window_index])
+	if(first_loop[window_idx])
 	{
-		sx[window_index] = (double)MIN_WIDTH / (float)WIDTH; //temp for debug
-		sy[window_index] = (double)MIN_HEIGHT / (float)HEIGHT;
+		sx[window_idx] = (double)MIN_WIDTH / (double)WIDTH; //temp for debug
+		sy[window_idx] = (double)MIN_HEIGHT / (double)HEIGHT;
+		first_loop[window_idx] = false;
 		cairo_matrix_init(
-			&cr_matrix[window_index], 
-			mat_xx[window_index], mat_yx[window_index], mat_xy[window_index], 
-			mat_xy[window_index], mat_x0[window_index], mat_y0[window_index]);
+			&cr_matrix[window_idx], 
+			mat_xx[window_idx], mat_yx[window_idx], mat_xy[window_idx], 
+			mat_xy[window_idx], mat_x0[window_idx], mat_y0[window_idx]);
+		cairo_scale(cr, sx[window_idx], sy[window_idx]);
+		cairo_get_matrix(cr, &cr_matrix[window_idx]);
 	}
-
-	cairo_scale(cr, sx[window_index], sy[window_index]);
-
+	
 	cdu_t cdu_data = *((cdu_t*)userinfo);
-	cairo_get_matrix(cr, &cr_matrix[window_index]); //what is the current matrix for debugging
+	cairo_set_matrix(cr, &cr_matrix[window_idx]);
 	cairo_set_source_rgba(cr, color.x, color.y, color.z,1);
 	cairo_paint(cr);
 	
@@ -503,35 +536,35 @@ void menu_handler(void * in_menu_ref, void * in_item_ref)
 	
 	if(!strcmp((const char *)in_item_ref, "Menu Item 1"))
 	{
-			if(XPLMGetWindowIsVisible(g_window[0]))
+			if(XPLMGetWindowIsVisible(civa_window[0]))
 			{
-				XPLMSetWindowIsVisible(g_window[0], 0);
+				XPLMSetWindowIsVisible(civa_window[0], 0);
 			}
-			else if (!XPLMGetWindowIsVisible(g_window[0]))
+			else if (!XPLMGetWindowIsVisible(civa_window[0]))
 			{
-				XPLMSetWindowIsVisible(g_window[0], 1);
+				XPLMSetWindowIsVisible(civa_window[0], 1);
 			}
 	}
 		if(!strcmp((const char *)in_item_ref, "Menu Item 2"))
 	{
-			if(XPLMGetWindowIsVisible(g_window[1]))
+			if(XPLMGetWindowIsVisible(civa_window[1]))
 			{
-				XPLMSetWindowIsVisible(g_window[1], 0);
+				XPLMSetWindowIsVisible(civa_window[1], 0);
 			}
-			else if (!XPLMGetWindowIsVisible(g_window[1]))
+			else if (!XPLMGetWindowIsVisible(civa_window[1]))
 			{
-				XPLMSetWindowIsVisible(g_window[1], 1);
+				XPLMSetWindowIsVisible(civa_window[1], 1);
 			}
 	}
 		if(!strcmp((const char *)in_item_ref, "Menu Item 3"))
 	{
-			if(XPLMGetWindowIsVisible(g_window[2]))
+			if(XPLMGetWindowIsVisible(civa_window[2]))
 			{
-				XPLMSetWindowIsVisible(g_window[2], 0);
+				XPLMSetWindowIsVisible(civa_window[2], 0);
 			}
-			else if (!XPLMGetWindowIsVisible(g_window[2]))
+			else if (!XPLMGetWindowIsVisible(civa_window[2]))
 			{
-				XPLMSetWindowIsVisible(g_window[2], 1);
+				XPLMSetWindowIsVisible(civa_window[2], 1);
 			}
 	}
 }
@@ -609,7 +642,7 @@ int dummy_wheel_handler(XPLMWindowID in_window_id, int x, int y, int wheel, int 
 void window_params_setup(XPLMCreateWindow_t param)
 {
 	param.structSize = sizeof(param);
-	param.visible = 0;
+	param.visible = 1;
 	param.drawWindowFunc = draw;
 	// Note on "dummy" handlers:
 	// Even if we don't want to handle these events, we have to register a "do-nothing" callback for them
@@ -634,17 +667,18 @@ void window_params_setup(XPLMCreateWindow_t param)
 	param.right = param.left + MIN_WIDTH;
 	param.top = param.bottom + MIN_HEIGHT;
 	//REPLACE 3 WITH NUM_IRU
-	for(int i = 0; i < 3; ++i)
+	for(int i = 0; i < 3; ++i) //replace with NUM_IRU
 	{
-		g_window[i] = XPLMCreateWindowEx(&param);
-		XPLMSetWindowPositioningMode(g_window[i], xplm_WindowPositionFree, -1);
-		XPLMSetWindowGravity(g_window[i], 0, 1, 0, 1); // As the X-Plane window resizes, keep our size constant, and our left and top edges in the same place relative to the window's left/top
-		XPLMSetWindowResizingLimits(g_window[i], MIN_WIDTH, MIN_HEIGHT, WIDTH, HEIGHT); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
-		//XPLMSetWindowResizingLimits(g_window, WIDTH/4, HEIGHT/4, WIDTH*3/4, HEIGHT*3/4); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
+		civa_window[i] = XPLMCreateWindowEx(&param);
+		XPLMSetWindowPositioningMode(civa_window[i], xplm_WindowPositionFree, -1);
+		XPLMSetWindowGravity(civa_window[i], 0, 1, 0, 1); // As the X-Plane window resizes, keep our size constant, and our left and top edges in the same place relative to the window's left/top
+		XPLMSetWindowResizingLimits(civa_window[i], MIN_WIDTH, MIN_HEIGHT, MIN_WIDTH, MIN_HEIGHT); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
+		//XPLMSetWindowResizingLimits(civa_window, WIDTH/4, HEIGHT/4, WIDTH*3/4, HEIGHT*3/4); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
 		char window_name[6];
 		snprintf(window_name, sizeof(window_name), "CDU-%i", i+1);
-		XPLMSetWindowTitle(g_window[i], window_name);
+		XPLMSetWindowTitle(civa_window[i], window_name);
 	}
+	make_window_map();
 
 }
 

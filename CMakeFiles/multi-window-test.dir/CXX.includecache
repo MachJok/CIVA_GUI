@@ -45,6 +45,8 @@ cairo.h
 /home/crash/Desktop/Projects/Dev/multiwindow_test/cairo.h
 gui_variables.h
 /home/crash/Desktop/Projects/Dev/multiwindow_test/gui_variables.h
+cmath
+-
 cstdio
 -
 cstring
