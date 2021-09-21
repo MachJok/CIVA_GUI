@@ -111,8 +111,8 @@ const char* sans_full_path;
 
 vect3_t color = {1,0,1};
 int window_l{0}, window_t{0}, window_r{0}, window_b{0}, w_curr[3], h_curr[3], 
-	w_old[3], h_old[3], x, y, first_render_loop{0},sim_paused{0}, 
-	window_index, cdu_warn_light[3]{0}, cdu_batt_light[3]{0};
+	w_old[3], h_old[3], x{0}, y{0}, first_render_loop{0},sim_paused{0}, 
+	window_index{0}, cdu_warn_light[3]{0}, cdu_batt_light[3]{0};
 char plugindir[MAX_PATH]{};
 char* p;
 
@@ -120,7 +120,6 @@ vect2_t pos[3]{0}, size[3]{0};
 
 // An opaque handle to the window we will create
 static XPLMWindowID	civa_window[3]{NULL};
-static XPLMWindowID current_window{NULL};
 static float g_pop_button_lbrt[4]{0}, g_position_button_lbrt[4]{0}; // left, bottom, right, top
 XPLMCreateWindow_t params;
 
@@ -128,7 +127,7 @@ static float curr_width{0}, curr_height{0};
 
 bool second_update{false}, init_renderer_complete[3]{false}, loaded_datarefs{false}, first_loop[3]{true};
 double sim_frame_time{0}, current_time{0}, sx[3]{0}, sy[3]{0}, old_sx[3]{1}, old_sy[3]{1}, rel_sx[3]{1}, rel_sy[3]{1};
-double mat_xx[3], mat_xy[3], mat_yx[3], mat_yy[3], mat_x0[3], mat_y0[3];
+double mat_xx[3]{0}, mat_xy[3]{0}, mat_yx[3]{0}, mat_yy[3]{0}, mat_x0[3]{0}, mat_y0[3]{0};
 
 int g_menu_container_idx; // The index of our menu item in the Plugins menu
 XPLMMenuID g_menu_id; // The menu container we'll append all our menu items to
@@ -183,8 +182,6 @@ void brightness_knob(cdu_t *cdu, cairo_t *cr);
 void auto_man(cdu_t *cdu, cairo_t *cr);
 
 void screen_format(cdu_t *cdu);
-
-
 
 void test_mode_set(cdu_t *cdu, cairo_t *cr);
 
@@ -393,10 +390,10 @@ void	draw(XPLMWindowID in_window_id, void * in_refcon)
 		h_curr[window_index] = MIN_HEIGHT; //current height
 		w_old[window_index] = w_curr[window_index];
 		h_old[window_index] = h_curr[window_index];
-		//initialize mt_cairo
 		GetDataRefs();
+		//load the CDU data now to prevent blank digits for the first second
 		load_cdu_data(window_index);
-
+		//initialize mt_cairo
 		mtcr[window_index] = 
 			mt_cairo_render_init(w_curr[window_index], h_curr[window_index], 0,
 				NULL, render_cb, NULL, &cdu_data[window_index]);
@@ -802,43 +799,43 @@ void init_font()
 void n_s_light(bool on, bool north, bool test, cairo_t *cr)
 {
     cairo_set_font_face(cr, sans);
-    cairo_set_font_size(cr, 60.0);
+    cairo_set_font_size(cr, 50.0);
     
     cairo_set_source_rgb(cr, text_color.red, text_color.green, text_color.blue);
 
     if(on && north && !test)
     {
-        cairo_move_to(cr, 526, 103);
+        cairo_move_to(cr, 530, 103);
         cairo_show_text(cr, "N");
         
         cairo_set_source_rgb(cr, off_color.red, off_color.green, off_color.blue);
-        cairo_move_to(cr, 529, 157);
+        cairo_move_to(cr, 533, 157);
         cairo_show_text(cr, "S");
     }
     else if (on && !north && !test) 
     {
-        cairo_move_to(cr, 529, 157);
+        cairo_move_to(cr, 533, 157);
         cairo_show_text(cr, "S");
 
         cairo_set_source_rgb(cr, off_color.red, off_color.green, off_color.blue);
-        cairo_move_to(cr, 526, 103);
+        cairo_move_to(cr, 530, 103);
         cairo_show_text(cr, "N");
     }
 
     else if (on && test) 
     {
-        cairo_move_to(cr, 526, 103);
+        cairo_move_to(cr, 530, 103);
         cairo_show_text(cr, "N");
-        cairo_move_to(cr, 529, 157);
+        cairo_move_to(cr, 533, 157);
         cairo_show_text(cr, "S");
     }
 
     else if(!on)
     {
         cairo_set_source_rgb(cr, off_color.red, off_color.green, off_color.blue);
-        cairo_move_to(cr, 526, 103);
+        cairo_move_to(cr, 530, 103);
         cairo_show_text(cr, "N"); 
-        cairo_move_to(cr, 529, 157);
+        cairo_move_to(cr, 533, 157);
         cairo_show_text(cr, "S");                 
     }
  
@@ -847,41 +844,41 @@ void n_s_light(bool on, bool north, bool test, cairo_t *cr)
 void e_w_light(bool on, bool east, bool test, cairo_t *cr)
 {
     cairo_set_font_face(cr, sans);
-    cairo_set_font_size(cr, 60.0);    
+    cairo_set_font_size(cr, 50.0);    
     cairo_set_source_rgb(cr, text_color.red, text_color.green, text_color.blue);
 
 
 
     if(on && east && !test)
     {
-        cairo_move_to(cr, 1118, 103);
+        cairo_move_to(cr, 1124, 103);
         cairo_show_text(cr, "E");
         cairo_set_source_rgb(cr, off_color.red, off_color.green, off_color.blue);
-        cairo_move_to(cr, 1111, 157);
+        cairo_move_to(cr, 1117, 157);
         cairo_show_text(cr, "W");        
     }
     if(on && !east && !test)
     {
-        cairo_move_to(cr, 1111, 157);
+        cairo_move_to(cr, 1117, 157);
         cairo_show_text(cr, "W");
         cairo_set_source_rgb(cr, off_color.red, off_color.green, off_color.blue);
-        cairo_move_to(cr, 1118, 103);
+        cairo_move_to(cr, 1124, 103);
         cairo_show_text(cr, "E");        
     }
     if(on && test)
     {
         cairo_set_source_rgb(cr, text_color.red, text_color.green, text_color.blue);
-        cairo_move_to(cr, 1118, 103);
+        cairo_move_to(cr, 1124, 103);
         cairo_show_text(cr, "E");
-        cairo_move_to(cr, 1111, 157);
+        cairo_move_to(cr, 1117, 157);
         cairo_show_text(cr, "W");
     }
     else if(!on)
     {
         cairo_set_source_rgb(cr, off_color.red, off_color.green, off_color.blue);
-        cairo_move_to(cr, 1118, 103);
+        cairo_move_to(cr, 1124, 103);
         cairo_show_text(cr, "E");
-        cairo_move_to(cr, 1111, 157);
+        cairo_move_to(cr, 1117, 157);
         cairo_show_text(cr, "W");            
     }  
 }
@@ -909,7 +906,7 @@ void left_display(cdu_t *cdu, cairo_t *cr)
     if(!cdu->displays.left_deg2)
     {
         cairo_set_source_rgb(cr, off_color.red, off_color.green, off_color.blue); //set to off color
-        cairo_move_to(cr, 526, 71);
+        cairo_move_to(cr, 529, 71);
         cairo_show_text(cr, ".");
     } 
     if(!cdu->displays.left_2dec_deg)
@@ -934,7 +931,7 @@ void left_display(cdu_t *cdu, cairo_t *cr)
         if(cdu->displays.left_deg2)
         {
             cairo_set_source_rgb(cr, text_color.red, text_color.green, text_color.blue); //set to "off" color
-            cairo_move_to(cr, 526, 71);
+            cairo_move_to(cr, 529, 71);
             cairo_show_text(cr, "."); 
         }
 
@@ -989,7 +986,7 @@ void right_display(cdu_t *cdu, cairo_t *cr)
     if(!cdu->displays.right_dec_deg)
     {
         cairo_set_source_rgb(cr, off_color.red, off_color.green, off_color.blue); //set to off color
-        cairo_move_to(cr, 1118, 71);
+        cairo_move_to(cr, 1123, 71);
         cairo_show_text(cr, ".");
     }     
 
@@ -1013,7 +1010,7 @@ void right_display(cdu_t *cdu, cairo_t *cr)
         if(cdu->displays.right_dec_deg)
         {
             cairo_set_source_rgb(cr, text_color.red, text_color.green, text_color.blue); //set to "off" color
-            cairo_move_to(cr, 1118, 71);
+            cairo_move_to(cr, 1123, 71);
             cairo_show_text(cr, "."); 
         }
 
