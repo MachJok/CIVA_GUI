@@ -259,6 +259,20 @@ PLUGIN_API int XPluginStart(
 	}
 
 	window_params_setup(params);
+	
+	for(int i = 0; i < 3; ++i) //replace with NUM_IRU
+	{
+		civa_window[i] = XPLMCreateWindowEx(&params);
+		XPLMSetWindowPositioningMode(civa_window[i], xplm_WindowPositionFree, -1);
+		XPLMSetWindowGravity(civa_window[i], 0, 1, 0, 1); // As the X-Plane window resizes, keep our size constant, and our left and top edges in the same place relative to the window's left/top
+		XPLMSetWindowResizingLimits(civa_window[i], MIN_WIDTH, MIN_HEIGHT, MIN_WIDTH, MIN_HEIGHT); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
+		//XPLMSetWindowResizingLimits(civa_window, WIDTH/4, HEIGHT/4, WIDTH*3/4, HEIGHT*3/4); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
+		char window_name[6];
+		snprintf(window_name, sizeof(window_name), "CDU-%i", i+1);
+		XPLMSetWindowTitle(civa_window[i], window_name);
+	}
+	
+	make_window_map();
 	logMsg("Menu Created successfuly");
 
 	
@@ -664,19 +678,6 @@ void window_params_setup(XPLMCreateWindow_t param)
 	param.right = param.left + MIN_WIDTH;
 	param.top = param.bottom + MIN_HEIGHT;
 	//REPLACE 3 WITH NUM_IRU
-	for(int i = 0; i < 3; ++i) //replace with NUM_IRU
-	{
-		civa_window[i] = XPLMCreateWindowEx(&param);
-		XPLMSetWindowPositioningMode(civa_window[i], xplm_WindowPositionFree, -1);
-		XPLMSetWindowGravity(civa_window[i], 0, 1, 0, 1); // As the X-Plane window resizes, keep our size constant, and our left and top edges in the same place relative to the window's left/top
-		XPLMSetWindowResizingLimits(civa_window[i], MIN_WIDTH, MIN_HEIGHT, MIN_WIDTH, MIN_HEIGHT); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
-		//XPLMSetWindowResizingLimits(civa_window, WIDTH/4, HEIGHT/4, WIDTH*3/4, HEIGHT*3/4); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
-		char window_name[6];
-		snprintf(window_name, sizeof(window_name), "CDU-%i", i+1);
-		XPLMSetWindowTitle(civa_window[i], window_name);
-	}
-	make_window_map();
-
 }
 
 void fini_cb()
