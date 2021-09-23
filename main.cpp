@@ -373,7 +373,7 @@ void load_cdu_data(int window_index)
 bool seconds_update()
 {
 	current_time += sim_frame_time;
-	if(current_time >= 1.0 && !sim_paused)
+	if(current_time >= 0.6 && !sim_paused)
 	{
 		second_update = true;
 		current_time = 0;
