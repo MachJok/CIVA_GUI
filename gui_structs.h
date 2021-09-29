@@ -61,6 +61,7 @@ struct cdu_t
     enum auto_man_knob_enum sequence;
 
     int wpt_num;
+	bool auto_man;
     bool hold_pressed;
     bool remote_pressed;
     bool insert_pressed;

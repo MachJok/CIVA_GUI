@@ -1,4 +1,6 @@
 #include "main.h"
+#include "XPLMDefs.h"
+#include "XPLMPlugin.h"
 #include "source_includes.h"
 #include "gui_structs.h"
 #include "XPLMDisplay.h"
@@ -126,9 +128,10 @@ XPLMCreateWindow_t params;
 static float curr_width{0}, curr_height{0};
 
 bool second_update{false}, init_renderer_complete[3]{false}, loaded_datarefs{false}, first_loop[3]{true};
+bool plane_loaded{false};
 double sim_frame_time{0}, current_time{0}, sx[3]{0}, sy[3]{0}, old_sx[3]{1}, old_sy[3]{1}, rel_sx[3]{1}, rel_sy[3]{1};
 double mat_xx[3]{0}, mat_xy[3]{0}, mat_yx[3]{0}, mat_yy[3]{0}, mat_x0[3]{0}, mat_y0[3]{0};
-
+int waypoint_sel_num[3]{0}, auto_man_knob_dr[3]{0}, nav_from_to[3][2]{0}, cdu_alert_light[3]{0};
 int g_menu_container_idx; // The index of our menu item in the Plugins menu
 XPLMMenuID g_menu_id; // The menu container we'll append all our menu items to
 
@@ -206,6 +209,8 @@ void 				window_params_setup(XPLMCreateWindow_t *param);
 void 				menu_handler(void *, void *);
 
 int 				render_loop(XPLMDrawingPhase inPhase, int inIsBefore, void* refcon);
+static float LoadDataRefsFloop(float elapsed1, float elapsed2, int counter, void* refcon);
+static 
 void 				render_cb(cairo_t *cr, unsigned w, unsigned h, void* userinfo);
 
 
@@ -213,6 +218,7 @@ void				fini_cb();
 
 bool				seconds_update();
 void 				get_plugin_path();
+
 
 
 
@@ -270,8 +276,8 @@ PLUGIN_API int XPluginStart(
 		civa_window[i] = XPLMCreateWindowEx(&params);
 		XPLMSetWindowPositioningMode(civa_window[i], xplm_WindowPositionFree, -1);
 		XPLMSetWindowGravity(civa_window[i], 0, 1, 0, 1); // As the X-Plane window resizes, keep our size constant, and our left and top edges in the same place relative to the window's left/top
-		XPLMSetWindowResizingLimits(civa_window[i], MIN_WIDTH, MIN_HEIGHT, MIN_WIDTH, MIN_HEIGHT); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
-		//XPLMSetWindowResizingLimits(civa_window, WIDTH/4, HEIGHT/4, WIDTH*3/4, HEIGHT*3/4); // Limit resizing our window: maintain a minimum width/height of 200 boxels and a max width/height of 500
+		XPLMSetWindowResizingLimits(civa_window[i], MIN_WIDTH, MIN_HEIGHT, MIN_WIDTH, MIN_HEIGHT); // Limit resizing our window
+		//XPLMSetWindowResizingLimits(civa_window, WIDTH/4, HEIGHT/4, WIDTH*3/4, HEIGHT*3/4);
 		char window_name[6];
 		snprintf(window_name, sizeof(window_name), "CDU-%i", i+1);
 		XPLMSetWindowTitle(civa_window[i], window_name);
@@ -288,6 +294,12 @@ PLUGIN_API int XPluginStart(
 PLUGIN_API int  XPluginEnable(void)  
 { 
 	logMsg("entered XPluginEnable");
+	XPLMRegisterFlightLoopCallback(LoadDataRefsFloop, -1, NULL);
+
+	if(loaded_datarefs)
+	{
+		XPLMUnregisterFlightLoopCallback(LoadDataRefsFloop, NULL);
+	}
 
 	//register the render loop so we draw after (0) the window (xplm_Phase_Window) is drawn
 
@@ -321,7 +333,34 @@ PLUGIN_API void XPluginDisable(void)
 {
 
 }
-PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void * inParam) { }
+PLUGIN_API void XPluginReceiveMessage(XPLMPluginID inFrom, int inMsg, void * inParam) 
+{
+
+    if (inFrom == XPLM_PLUGIN_XPLANE)
+    {
+        switch(inMsg)
+        {
+            case XPLM_MSG_PLANE_LOADED:
+                if ((int*)inParam == XPLM_PLUGIN_XPLANE)
+                {
+					plane_loaded = true;
+
+					logMsg("XPLM_MSG_PLANE_LOADED receieved");
+
+                }
+            break;
+        }
+    }
+
+}
+
+
+static float LoadDataRefsFloop(float elapsed1, float elapsed2, int counter, void* refcon)
+{
+	LoadDataRefs();
+	loaded_datarefs = true;
+	return 0;
+}
 
 void make_window_map()
 {
@@ -329,44 +368,32 @@ void make_window_map()
 }
 void load_cdu_data(int window_index)
 {
-	cdu_data[0].data_sel = POS;
-    cdu_data[0].displays.left_display_on = true;
-    cdu_data[0].displays.right_display_on = true;
-    cdu_data[0].test_pressed = false;
-    cdu_data[0].wpt_num = 1;
-    cdu_data[0].brightness_knob_ang = 0;
-    cdu_data[0].displays.nav_from = 1;
-    cdu_data[0].displays.nav_to = 2;
-    cdu_data[0].hold_pressed = false;
-    cdu_data[0].hold_on = false;	
-	cdu_data[0].bat_on = cdu_batt_light[0];
-	cdu_data[0].warn_on = cdu_warn_light[0];
-
-	cdu_data[1].data_sel = POS;
-    cdu_data[1].displays.left_display_on = true;
-    cdu_data[1].displays.right_display_on = true;
-    cdu_data[1].test_pressed = false;
-    cdu_data[1].wpt_num = 1;
-    cdu_data[1].brightness_knob_ang = 0;
-    cdu_data[1].displays.nav_from = 3;
-    cdu_data[1].displays.nav_to = 4;
-    cdu_data[1].hold_pressed = false;
-    cdu_data[1].hold_on = false;	
-	cdu_data[1].bat_on = cdu_batt_light[1];
-	cdu_data[1].warn_on = cdu_warn_light[1];
-		
-	cdu_data[2].data_sel = POS;
-    cdu_data[2].displays.left_display_on = true;
-    cdu_data[2].displays.right_display_on = true;
-    cdu_data[2].test_pressed = false;
-    cdu_data[2].wpt_num = 1;
-    cdu_data[2].brightness_knob_ang = 0;
-    cdu_data[2].displays.nav_from = 5;
-    cdu_data[2].displays.nav_to = 6;
-    cdu_data[2].hold_pressed = false;
-    cdu_data[2].hold_on = false;	
-	cdu_data[2].bat_on = cdu_batt_light[2];
-	cdu_data[2].warn_on = cdu_warn_light[2];
+	//this section needs to be replaced when commands are implemented
+	//this is debug only pulling data from the ins not the other way around
+	for(int i = 0; i < 3; ++i) //replace with NUM_IRU
+	{
+		cdu_data[i].data_sel = POS;
+    	cdu_data[i].displays.left_display_on = true;
+    	cdu_data[i].displays.right_display_on = true;
+    	cdu_data[i].test_pressed = false;
+    	cdu_data[i].wpt_num = waypoint_sel_num[i];
+    	cdu_data[i].brightness_knob_ang = 0;
+    	cdu_data[i].displays.nav_from = nav_from_to[i][0];
+    	cdu_data[i].displays.nav_to = nav_from_to[i][1];
+    	cdu_data[i].hold_pressed = false;
+    	cdu_data[i].hold_on = false;	
+		cdu_data[i].bat_on = cdu_batt_light[i];
+		cdu_data[i].warn_on = cdu_warn_light[i];
+		cdu_data[i].auto_man = auto_man_knob_dr[i];
+		if(cdu_data[i].auto_man)
+		{
+			cdu_data[i].sequence = automatic;
+		}
+		else
+		{
+			cdu_data[i].sequence = manual;
+		}
+	}
 }
 
 //digit display refresh controller
@@ -390,87 +417,84 @@ bool seconds_update()
 
 void	draw(XPLMWindowID in_window_id, void * in_refcon)
 {
-	//read in the current window index
-	window_index = window_map[in_window_id];
-
-
-	//if the mtcr instances have not been initialized for the called window then do so
-	if(!init_renderer_complete[window_index])
+	//check to see if the plane has finished loading before doing anything
+	if(loaded_datarefs)
 	{	
-		//on the first pass load in datarefs
-		if(!loaded_datarefs)
-		{
-			LoadDataRefs();
-			loaded_datarefs = true;
-			logMsg("datarefs loaded");
+		//read in the current window index
+		window_index = window_map[in_window_id];
+
+		//initialize MTCR if the plane is loaded
+		if(!init_renderer_complete[window_index])
+		{	
+			//set the "old" window sizes to the load window sizes
+			w_curr[window_index] = MIN_WIDTH; //current width
+			h_curr[window_index] = MIN_HEIGHT; //current height
+			w_old[window_index] = w_curr[window_index];
+			h_old[window_index] = h_curr[window_index];
+			GetDataRefs();
+			//load the CDU data now to prevent blank digits for the first second
+			load_cdu_data(window_index);
+			//initialize mt_cairo
+			mtcr[window_index] = 
+				mt_cairo_render_init(w_curr[window_index], h_curr[window_index], 0,
+					NULL, render_cb, NULL, &cdu_data[window_index]);
+
+			//set the flag to true to prevent scaling in the render_cb
+			init_renderer_complete[window_index] = true;
+			//enable single threaded mode
+			mt_cairo_render_enable_fg_mode(mtcr[window_index]);
+
+			logMsg("CDU window %i init: %s", window_index, 
+					mtcr[window_index] != NULL ? "done" : "failed");
+
+			ASSERT(mtcr[window_index] != NULL);
 		}
-		//set the "old" window sizes to the load window sizes
-		w_curr[window_index] = MIN_WIDTH; //current width
-		h_curr[window_index] = MIN_HEIGHT; //current height
+
+		GetDataRefs();
+		//get the window geometry 
+		XPLMGetWindowGeometry
+		(in_window_id, &window_l, &window_t, &window_r, &window_b);
+		w_curr[window_index] = window_r - window_l; //current width
+		h_curr[window_index] = window_t - window_b; //current height
+		pos[window_index] = {(double) window_l, (double) window_b}; //current position
+		size[window_index] = {(double) w_curr[window_index], (double) h_curr[window_index]}; //current size
+
+
+		//if the size has changed set the new size to be the current size
+		//and reinitialize the renderer
+		// if(mtcr[window_index] != NULL && (w_curr[window_index] != w_old[window_index] || 
+		// 								  h_curr[window_index] != h_old[window_index]))
+		// {
+		// 	mt_cairo_render_fini(mtcr[window_index]);
+		// 	mtcr[window_index] = NULL;
+		// 	//reinitialize to the current size of the current window value
+		// 	GetDataRefs();
+		// 	load_cdu_data(window_index);
+		// 	mtcr[window_index] = mt_cairo_render_init(w_curr[window_index], h_curr[window_index], 0, NULL, 
+		// 						render_cb, NULL, &cdu_data[window_index]);
+		// 	ASSERT(mtcr[window_index] != NULL);
+		// }
+
+		//set the old size to the current size for next loop size checks
 		w_old[window_index] = w_curr[window_index];
 		h_old[window_index] = h_curr[window_index];
-		GetDataRefs();
-		//load the CDU data now to prevent blank digits for the first second
+
+		//get the current datarefs from the sim and other plugins
+		
 		load_cdu_data(window_index);
-		//initialize mt_cairo
-		mtcr[window_index] = 
-			mt_cairo_render_init(w_curr[window_index], h_curr[window_index], 0,
-				NULL, render_cb, NULL, &cdu_data[window_index]);
+		//set the update flag for cdu data update to true if 1 second has elapsed
+		bool update_flag = seconds_update();
+		//load the new data into the cdu screens if the update flag is triggered
+		if(update_flag)
+		{
+			load_digits(&cdu_data[window_index], current_pos_char[window_index],
+							cdu_data[window_index].displays.left_digits, 
+							cdu_data[window_index].displays.right_digits);	
+		}
 
-		//set the flag to true to prevent scaling in the render_cb
-		init_renderer_complete[window_index] = true;
-		//enable single threaded mode
-		mt_cairo_render_enable_fg_mode(mtcr[window_index]);
-
-		logMsg("CDU window %i init: %s", window_index, 
-				mtcr[window_index] != NULL ? "done" : "failed");
-
-		ASSERT(mtcr[window_index] != NULL);
+		mt_cairo_render_once_wait(mtcr[window_index]);
+		mt_cairo_render_draw(mtcr[window_index], pos[window_index], size[window_index]);
 	}
-
-	//get the window geometry 
-	XPLMGetWindowGeometry
-	(in_window_id, &window_l, &window_t, &window_r, &window_b);
-	w_curr[window_index] = window_r - window_l; //current width
-	h_curr[window_index] = window_t - window_b; //current height
-	pos[window_index] = {(double) window_l, (double) window_b}; //current position
-	size[window_index] = {(double) w_curr[window_index], (double) h_curr[window_index]}; //current size
-
-
-	//if the size has changed set the new size to be the current size
-	//and reinitialize the renderer
-	// if(mtcr[window_index] != NULL && (w_curr[window_index] != w_old[window_index] || 
-	// 								  h_curr[window_index] != h_old[window_index]))
-	// {
-	// 	mt_cairo_render_fini(mtcr[window_index]);
-	// 	mtcr[window_index] = NULL;
-	// 	//reinitialize to the current size of the current window value
-	// 	GetDataRefs();
-	// 	load_cdu_data(window_index);
-	// 	mtcr[window_index] = mt_cairo_render_init(w_curr[window_index], h_curr[window_index], 0, NULL, 
-	// 						render_cb, NULL, &cdu_data[window_index]);
-	// 	ASSERT(mtcr[window_index] != NULL);
-	// }
-
-	//set the old size to the current size for next loop size checks
-	w_old[window_index] = w_curr[window_index];
-	h_old[window_index] = h_curr[window_index];
-
-	//get the current datarefs from the sim and other plugins
-	GetDataRefs();
-	load_cdu_data(window_index);
-	//set the update flag for cdu data update to true if 1 second has elapsed
-	bool update_flag = seconds_update();
-	//load the new data into the cdu screens if the update flag is triggered
-	if(update_flag)
-	{
-		load_digits(&cdu_data[window_index], current_pos_char[window_index],
-						cdu_data[window_index].displays.left_digits, 
-						cdu_data[window_index].displays.right_digits);	
-	}
-
-	mt_cairo_render_once_wait(mtcr[window_index]);
-	mt_cairo_render_draw(mtcr[window_index], pos[window_index], size[window_index]);
 }
 
 void render_cb(cairo_t *cr, unsigned w, unsigned h, void* userinfo)
